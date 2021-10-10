@@ -13,7 +13,6 @@
 
 namespace kat {
 
-    using PFNinternaleventfun = std::function<void(BaseEvent*)>;
     
     class BaseEvent {
     public:
@@ -28,6 +27,7 @@ namespace kat {
     private:
 
     };
+    using PFNinternaleventfun = std::function<void(BaseEvent*)>;
 
     class CancelableEvent : public BaseEvent {
     public:
@@ -43,7 +43,7 @@ namespace kat {
     concept event_class = std::is_base_of_v<BaseEvent, T>;
 
     template <event_class T>
-    constexpr bool is_event_cancelable() { return std::is_base_of_v<CancelableEvent, T> };
+    constexpr bool is_event_cancelable() { return std::is_base_of_v<CancelableEvent, T>; };
 
     class EventManager;
 
