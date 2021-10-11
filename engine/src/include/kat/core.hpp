@@ -1,5 +1,6 @@
 #pragma once
 
+#include <condition_variable>
 #include <string>
 #include <vector>
 #include <concepts>
@@ -15,7 +16,7 @@ namespace kat {
 
     template <typename T>
     struct ptr_less {
-        inline bool operator()(const T*& a, const T*& b) {
+        inline bool operator()(const T* a, const T* b) const {
             return std::less<T>{}(*a, *b);
         };
     };
@@ -24,11 +25,37 @@ namespace kat {
     class thread_pool {
     public:
         template<typename... Args>
-        inline thread_pool(std::function<void(std::stop_token, Args...)> f, Args... args) {
+        inline thread_pool(std::function<void(std::stop_token)> f) {
             for (size_t i = 0; i < count; i++) {
-                threads.emplace_back(f, &args...);
+                threads.emplace_back(f);
             }
         };
+
+        inline void stop() {
+            for (std::jthread& t : threads) {
+                t.get_stop_source().request_stop();
+            }
+            for (std::jthread& t : threads) {
+                if (t.joinable()) {
+                    t.join();
+                }
+            }
+        };
+
+        inline void stop(std::condition_variable& var) {
+            for (std::jthread& t : threads) {
+                t.get_stop_source().request_stop();
+            }
+
+            var.notify_all();
+            
+            for (std::jthread& t : threads) {
+                if (t.joinable()) {
+                    t.join();
+                }
+            }
+        };
+
     private:
         std::vector<std::jthread> threads;
     };

@@ -32,6 +32,10 @@ namespace kat {
     class CancelableEvent : public BaseEvent {
     public:
 
+        inline virtual void cancel() noexcept override {
+            m_Canceled = true;
+        };
+
         const inline virtual bool is_cancelable() const noexcept override { return true; };
         inline virtual bool is_canceled() const noexcept override { return m_Canceled; };
 
@@ -59,9 +63,9 @@ namespace kat {
 
         template<event_class E>
         inline void addListener(std::function<void(E*)> fun) {
-            addListener(std::type_index(typeid(E)), [&](BaseEvent* evt) {
+            addListener(std::type_index(typeid(E)), [fun](BaseEvent* evt) {
                 E* evt_ = reinterpret_cast<E*>(evt);
-                fun(evt);
+                fun(evt_);
                 });
         };
 
@@ -86,15 +90,25 @@ namespace kat {
         EventManager();
         virtual ~EventManager();
 
-        virtual void post(std::type_index ti, BaseEvent* evt) = 0;
+        virtual void post_(std::type_index ti, BaseEvent* evt) = 0;
 
         template<event_class E>
         inline void post(E* evt) {
-            post(std::type_index(typeid(E)), dynamic_cast<BaseEvent*>(evt));
+            post_(std::type_index(typeid(E)), dynamic_cast<BaseEvent*>(evt));
+        };
+
+        std::set<EventLayer*, ptr_less<EventLayer> > getLayers();
+
+        void addListener(std::type_index ti, PFNinternaleventfun fun);
+        EventLayer* createLayer(int idx);
+
+        template<event_class E>
+        inline void addListener(std::function<void(E*)> fun) {
+            m_DefaultLayer->addListener<E>(fun);
         };
 
     protected:
-        std::set<EventLayer*, ptr_less<EventLayer>> m_Layers;
+        std::set<EventLayer*, ptr_less<EventLayer> > m_Layers;
         EventLayer* m_DefaultLayer;
     };
 
@@ -104,7 +118,7 @@ namespace kat {
     class OnDemandEventManager : public EventManager {
     public:
 
-        virtual void post(std::type_index ti, BaseEvent* evt) override;
+        virtual void post_(std::type_index ti, BaseEvent* evt) override;
 
     private:
 
@@ -112,6 +126,11 @@ namespace kat {
 
     const size_t MAX_EVENT_THREADS = 10;
 
+
+    struct evt_item {
+        std::type_index first;
+        BaseEvent* second;
+    };
 
     /**
      * @brief 
@@ -123,17 +142,30 @@ namespace kat {
     class AsyncEventManager : public EventManager {
     public:
 
-        virtual void post(std::type_index ti, BaseEvent* evt) override;
+        AsyncEventManager();
 
-        std::pair<std::type_index, BaseEvent*> popEvent(); // will wait for event if one doesn't exist
+        virtual void post_(std::type_index ti, BaseEvent* evt) override;
+
+        evt_item popEvent(); // will wait for event if one doesn't exist
+        std::mutex m_LayersMutex;
+
+        inline void end() {
+            m_ThreadPool->stop(m_EAVcv);
+        };
+
+        inline void end_after_done() {
+            while (!m_EventQueue.empty()) {
+                std::this_thread::yield();
+            }
+            end();
+        };
 
     private:
         thread_pool<MAX_EVENT_THREADS>* m_ThreadPool;
         std::mutex m_EQMutex;
-        std::queue<std::pair<std::type_index, BaseEvent*> > m_EventQueue;
+        std::queue<evt_item> m_EventQueue;
         std::condition_variable m_EAVcv;
         std::mutex m_EAVcvMutex;
-        std::mutex m_LayersMutex;
     };
 
     void event_thread(std::stop_token st, AsyncEventManager* evtm);

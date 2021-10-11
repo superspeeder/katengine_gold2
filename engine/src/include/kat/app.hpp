@@ -2,8 +2,17 @@
 
 #include "kat/core.hpp"
 #include "kat/systemctx.hpp"
+#include "kat/event.hpp"
 
 namespace kat {
+
+	class TestEvent : public CancelableEvent {
+	public:
+		TestEvent(float n);
+
+		float num;
+	};
+
 	class App {
 	public:
 		
@@ -12,49 +21,14 @@ namespace kat {
 
 		void run();
 		
-		virtual void create() = 0;
-		virtual void update(double dt) = 0;
-		inline virtual void render(double dt) {}; // do nothing by default (allow internal rendering systems to handle everything)
-		virtual void destroy() = 0;
-
 		bool isOpen();
 		ExecutionContext* getExecContext();
 
 
-	private:
-
-		/*
-		Order:
-
-		preCreate
-		create
-		postCreate
-		mainloop
-			preUpdate
-			update
-			postUpdate
-			preRender
-			internalRender1
-			render
-			internalRender2
-			postRender
-		preDestroy
-		destroy
-		postDestroy
-		*/
-
-
-		void preCreate();
-		void postCreate();
-		void mainloop();
-		void preUpdate(double dt);
-		void postUpdate(double dt);
-		void preRender(double dt);
-		void internalRender1(double dt);
-		void internalRender2(double dt);
-		void postRender(double dt);
+	protected:
 
 		ExecutionContext* m_ExecCtx;
-
+		OnDemandEventManager* m_OnDemandEventManager;
+		AsyncEventManager* m_AsyncEventManager;
 	};
 }
