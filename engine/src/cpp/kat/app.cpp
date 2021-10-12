@@ -2,33 +2,105 @@
 #include <thread>
 #include <chrono>
 
+
 namespace kat {
 
-    TestEvent::TestEvent(float n) : num(n) {
-
-    }
+    const std::chrono::duration<double> SIXTIETH_SECOND(1.0 / 60.0);
 
     App::App(ExecutionContext* ctx) {
-        m_OnDemandEventManager = new OnDemandEventManager();
-        m_AsyncEventManager = new AsyncEventManager();
+        m_LifecycleEventManager = new OnDemandEventManager();
+        m_EventManager = new AsyncEventManager();
     }
 
     App::~App() {
         
     }
 
-    void App::run() {
-        using namespace std::chrono_literals;
-        m_AsyncEventManager->post(new TestEvent(1.0f));
-        m_AsyncEventManager->post(new TestEvent(2.0f));
-        m_AsyncEventManager->post(new TestEvent(3.0f));
-        m_AsyncEventManager->post(new TestEvent(4.0f));
-        m_AsyncEventManager->post(new TestEvent(5.0f));
-        m_AsyncEventManager->post(new TestEvent(6.0f));
-        m_AsyncEventManager->post(new TestEvent(7.0f));
-        m_AsyncEventManager->post(new TestEvent(8.0f));
-        m_AsyncEventManager->post(new TestEvent(9.0f));
-        m_AsyncEventManager->end_after_done();
+    bool App::isOpen() noexcept {
+        return m_Metrics.frameCount < 10;
     }
+
+    void App::run() {
+        internalConfigure();
+        m_LifecycleEventManager->post(new AppConfigureEvent(this));
+        internalCreate();
+        m_LifecycleEventManager->post(new AppCreateEvent(this));
+        mainloop();
+
+        m_EventManager->end_after_done();
+    }
+
+    void App::internalConfigure() {
+
+    }
+
+    void App::internalCreate() {
+
+    }
+
+    const AppMetrics& App::getMetrics() const noexcept {
+        return m_Metrics;
+    }
+
+    void App::mainloop() {
+        using namespace std::chrono_literals;
+
+        preMainloop();
+
+        std::chrono::high_resolution_clock hrc;
+        
+        std::chrono::time_point now = hrc.now();
+        std::chrono::time_point lastFrame = now - SIXTIETH_SECOND;
+
+        while (isOpen()) {
+            lastFrame = now;
+            now = hrc.now();
+            double dt = (now - lastFrame).count();
+
+            preUpdate(dt);
+            m_LifecycleEventManager->post(new AppUpdateEvent(this, dt));
+            postUpdate(dt);
+
+            preRender(dt);
+            m_LifecycleEventManager->post(new AppRenderEvent(this, dt));
+            postRender(dt);
+        }
+
+        postMainloop();
+    }
+
+    void App::preMainloop() {
+
+    }
+
+    void App::postMainloop() {
+
+    }
+
+    void App::preDestroy() {
+
+    }
+
+    void App::postDestroy() {
+
+    }
+
+    void App::preUpdate(double dt) {
+
+    }
+
+    void App::postUpdate(double dt) {
+
+    }
+
+    void App::preRender(double dt) {
+
+    }
+
+    void App::postRender(double dt) {
+
+    }
+
+
 
 }

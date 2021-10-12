@@ -5,16 +5,8 @@
 class TestApp : public kat::App {
 public:
     TestApp(kat::ExecutionContext* ctx) : kat::App(ctx) {
-        m_AsyncEventManager->addListener<kat::TestEvent>([&](kat::TestEvent* e) {
-            spdlog::info("Hello! {}", e->num);
-            if (e->num >= 5.0f) {
-                e->cancel();
-            }
-        });
-
-        auto lyr = m_AsyncEventManager->createLayer(-3);
-        lyr->addListener<kat::TestEvent>([&](kat::TestEvent* e) {
-            spdlog::info("Fuck! {}", e->num);
+        m_LifecycleEventManager->addListener<kat::AppConfigureEvent>([this](kat::AppConfigureEvent* evt) {
+            spdlog::info("Configureisms");
         });
     }
 };
