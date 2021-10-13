@@ -60,6 +60,8 @@ namespace kat {
         std::vector<std::jthread> threads;
     };
 
+
+
 #ifdef KAT_DEBUG
     #define KAT_DWARN(msg) spdlog::warn(msg)
     #define KAT_DEBUG(msg) spdlog::debug(msg)

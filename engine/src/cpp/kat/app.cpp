@@ -17,7 +17,7 @@ namespace kat {
     }
 
     bool App::isOpen() noexcept {
-        return m_Metrics.frameCount < 10;
+        return m_Metrics.frameCount < 50000000;
     }
 
     void App::run() {
@@ -26,6 +26,10 @@ namespace kat {
         internalCreate();
         m_LifecycleEventManager->post(new AppCreateEvent(this));
         mainloop();
+
+        preDestroy();
+        m_LifecycleEventManager->post(new AppDestroyEvent(this));
+        postDestroy();
 
         m_EventManager->end_after_done();
     }
@@ -49,13 +53,15 @@ namespace kat {
 
         std::chrono::high_resolution_clock hrc;
         
-        std::chrono::time_point now = hrc.now();
-        std::chrono::time_point lastFrame = now - SIXTIETH_SECOND;
+        std::chrono::time_point<std::chrono::high_resolution_clock, std::chrono::duration<double, std::nano> > now = hrc.now();
+        std::chrono::time_point<std::chrono::high_resolution_clock, std::chrono::duration<double, std::nano> > lastFrame = now - SIXTIETH_SECOND;
 
         while (isOpen()) {
-            lastFrame = now;
-            now = hrc.now();
-            double dt = (now - lastFrame).count();
+            std::chrono::duration<double> dt__ = now - lastFrame;
+            double dt = dt__.count();
+
+            double fps = 1.0 / dt;
+            m_Metrics.averageFPS = (m_Metrics.averageFPS * (((double)m_Metrics.frameCount) / ((double)m_Metrics.frameCount + 1.0))) + ((1.0 / ((double)m_Metrics.frameCount + 1.0)) * fps);
 
             preUpdate(dt);
             m_LifecycleEventManager->post(new AppUpdateEvent(this, dt));
@@ -64,6 +70,10 @@ namespace kat {
             preRender(dt);
             m_LifecycleEventManager->post(new AppRenderEvent(this, dt));
             postRender(dt);
+
+            m_Metrics.frameCount++;
+            lastFrame = now;
+            now = hrc.now();
         }
 
         postMainloop();

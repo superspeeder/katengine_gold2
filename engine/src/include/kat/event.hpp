@@ -69,6 +69,14 @@ namespace kat {
                 });
         };
 
+        template<event_class E, typename T>
+        inline void addListener(void(T::*fun)(E*), T* o) {
+            addListener(std::type_index(typeid(E)), [fun,o](BaseEvent* evt) {
+                E* evt_ = reinterpret_cast<E*>(evt);
+                std::invoke(fun, o, evt_);
+                });
+        };
+
         std::vector<PFNinternaleventfun>& getListeners(std::type_index ti);
 
         template<event_class E>
@@ -95,6 +103,7 @@ namespace kat {
         template<event_class E>
         inline void post(E* evt) {
             post_(std::type_index(typeid(E)), dynamic_cast<BaseEvent*>(evt));
+            delete evt;
         };
 
         std::set<EventLayer*, ptr_less<EventLayer> > getLayers();
@@ -106,6 +115,12 @@ namespace kat {
         inline void addListener(std::function<void(E*)> fun) {
             m_DefaultLayer->addListener<E>(fun);
         };
+
+        template<event_class E, typename T>
+        inline void addListener(void(T::*fun)(E*), T* o) {
+            m_DefaultLayer->addListener<E>(fun, o);
+        };
+
 
     protected:
         std::set<EventLayer*, ptr_less<EventLayer> > m_Layers;

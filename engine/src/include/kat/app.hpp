@@ -8,6 +8,7 @@ namespace kat {
 
 	struct AppMetrics {
 		uint64_t frameCount;
+		double averageFPS;
 	};
 
 	class App {
@@ -44,7 +45,7 @@ namespace kat {
 		void preDestroy();
 		void postDestroy();
 
-		AppMetrics m_Metrics;
+		AppMetrics m_Metrics{};
 	};
 
 	class AppEvent : public BaseEvent {
