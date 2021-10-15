@@ -14,6 +14,71 @@
 
 namespace kat {
 
+    namespace funct {
+        template<typename T, typename TT>
+        concept consumer = requires(T v, TT b) { v(b); };
+    }
+
+    template<typename T>
+    concept only_incrementally = requires(T v) { v++; v--; }; 
+
+    template<only_incrementally T>
+    struct raii_counter {
+        inline raii_counter() {
+            // (*target_value)++;
+        };
+        inline ~raii_counter() {
+            // (*target_value)--;
+        };
+    };
+
+    template<only_incrementally T, funct::consumer<T> oninc, funct::consumer<T> ondec>
+    struct watched_counter {
+        T value = 0;
+        oninc f_oninc{};
+        ondec f_ondec{};
+
+        watched_counter() {
+        };
+
+        watched_counter(T v) : value(v){
+        };
+
+        inline T operator++() {
+            T old = value++;
+            f_oninc(value);
+            return old;
+        };
+
+        inline watched_counter& operator--() {
+            T old = value--;
+            f_ondec(value);
+            return this;
+        };
+
+        inline watched_counter& operator++(int) {
+            value++;
+            f_oninc(value);
+            return *this;
+        };
+
+        inline watched_counter& operator--(int) {
+            value--;
+            f_ondec(value);
+            return *this;
+        };
+
+        inline bool operator==(const T& other) {
+            return value == other;
+        };
+
+        inline bool operator==(const watched_counter<T, oninc, ondec>& other) {
+            return value == other.value;
+        };
+    };
+
+
+
     template <typename T>
     struct ptr_less {
         inline bool operator()(const T* a, const T* b) const {

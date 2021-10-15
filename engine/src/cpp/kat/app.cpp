@@ -17,7 +17,7 @@ namespace kat {
     }
 
     bool App::isOpen() noexcept {
-        return m_Metrics.frameCount < 50000000;
+        return m_Metrics.frameCount < 5000000;
     }
 
     void App::run() {

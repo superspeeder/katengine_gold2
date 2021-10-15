@@ -1,6 +1,7 @@
 #include <kat/entry_point.hpp>
 #include <spdlog/spdlog.h>
 #include <kat/app.hpp>
+#include <kat/window.hpp>
 
 class TestApp : public kat::App {
 public:
@@ -17,6 +18,7 @@ public:
 
     void create(kat::AppCreateEvent* evt) {
         spdlog::info("Create!");
+        window =new kat::Window();
     };
 
     void update(kat::AppUpdateEvent* evt) {
@@ -26,7 +28,10 @@ public:
     void destroy(kat::AppDestroyEvent* evt) {
         spdlog::info("Destroy! ran for {} frames", getMetrics().frameCount);
         spdlog::info("Average fps: {}", getMetrics().averageFPS);
+        delete window;
     };
+
+    kat::Window* window;
 };
 
 void run_app(kat::ExecutionContext* ctx) {
