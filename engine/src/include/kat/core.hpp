@@ -22,15 +22,17 @@ namespace kat {
     template<typename T>
     concept only_incrementally = requires(T v) { v++; v--; }; 
 
-    template<only_incrementally T>
+    template<only_incrementally T, T* target_value>
     struct raii_counter {
         inline raii_counter() {
-            // (*target_value)++;
+            (*target_value)++;
         };
         inline ~raii_counter() {
-            // (*target_value)--;
+            (*target_value)--;
         };
     };
+
+    #define RAII_COUNTER(varn) raii_counter<decltype(varn), &varn>
 
     template<only_incrementally T, funct::consumer<T> oninc, funct::consumer<T> ondec>
     struct watched_counter {
@@ -76,8 +78,6 @@ namespace kat {
             return value == other.value;
         };
     };
-
-
 
     template <typename T>
     struct ptr_less {
@@ -127,19 +127,22 @@ namespace kat {
 
 
 
-#ifdef KAT_DEBUG
+#ifdef KAT_DEBUG_ENABLED
     #define KAT_DWARN(msg) spdlog::warn(msg)
     #define KAT_DEBUG(msg) spdlog::debug(msg)
     #define KAT_TRACE(msg)
+    const bool kDebugMode = true;
 #else
-    #ifdef KAT_TRACE
+    #ifdef KAT_TRACE_ENABLED
         #define KAT_DWARN(msg) spdlog::warn(msg)
         #define KAT_DEBUG(msg) spdlog::debug(msg)
         #define KAT_TRACE(msg) spdlog::trace(msg)
+        const bool kDebugMode = true;
     #else
         #define KAT_DWARN(msg)
         #define KAT_DEBUG(msg)
         #define KAT_TRACE(msg)
+        const bool kDebugMode = false;
     #endif
 #endif
 }
